@@ -1,2 +1,5 @@
 is_le: le.c
-	gcc -o $@ $<
+	cc -o $@ $<
+
+prodcons: prodcons.c
+	cc -o $@ $< -lpthread -Wall -Werror -ggdb
