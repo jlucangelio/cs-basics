@@ -3,17 +3,18 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static const size_t kCapacity = 10;
-static const unsigned int kNumCycles = 100;
+#define CAPACITY 10
 
-static const useconds_t kProdDelay = 1000;
-static const useconds_t kConsDelay = 1000;
+static const unsigned int kNumCycles = 50;
+
+static const unsigned int kProdDelayNs = 1000000;
+static const unsigned int kConsDelayNs = 1000000;
 
 pthread_mutex_t mutex;
 pthread_cond_t not_full_cv;
 pthread_cond_t not_empty_cv;
 
-int values[kCapacity];
+int values[CAPACITY];
 size_t first_available_idx = 0;
 
 void* produce(void* ptid) {
@@ -23,7 +24,7 @@ void* produce(void* ptid) {
 
   for (i = 0; i < kNumCycles; i++) {
     pthread_mutex_lock(&mutex);
-    if (first_available_idx == kCapacity) {
+    if (first_available_idx == CAPACITY) {
       /* No more space available in the shared buffer,
        * wait until the buffer is not full anymore.
        */
@@ -42,7 +43,10 @@ void* produce(void* ptid) {
       pthread_cond_signal(&not_empty_cv);
     }
     pthread_mutex_unlock(&mutex);
-    usleep(kProdDelay);
+    struct timespec t;
+    t.tv_sec = 0;
+    t.tv_nsec = kProdDelayNs;
+    nanosleep(&t, NULL);
   }
   pthread_exit(NULL);
 }
@@ -63,7 +67,7 @@ void* consume(void* ctid) {
     --first_available_idx;
     printf("consumer cycle %u, index %lu, value %d\n", i, first_available_idx,
            values[first_available_idx]);
-    if (first_available_idx == kCapacity - 1) {
+    if (first_available_idx == CAPACITY - 1) {
       /* Consumed the last element in the shared buffer,
        * signal that the buffer is not full anymore.
        */
@@ -71,7 +75,10 @@ void* consume(void* ctid) {
       pthread_cond_signal(&not_full_cv);
     }
     pthread_mutex_unlock(&mutex);
-    usleep(kConsDelay);
+    struct timespec t;
+    t.tv_sec = 0;
+    t.tv_nsec = kConsDelayNs;
+    nanosleep(&t, NULL);
   }
   pthread_exit(NULL);
 }
@@ -91,8 +98,8 @@ int main(int argc, char* argv[]) {
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  pthread_create(&workers[0], NULL, produce, (void*)ptid);
-  pthread_create(&workers[1], NULL, consume, (void*)ctid);
+  pthread_create(&workers[0], &attr, produce, (void*)ptid);
+  pthread_create(&workers[1], &attr, consume, (void*)ctid);
 
   pthread_join(workers[0], NULL);
   pthread_join(workers[1], NULL);
