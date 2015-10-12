@@ -1,5 +1,5 @@
 # cs-basics
-Basic CS constructs, for interviews and such. I wrote most of this code to practice for my Google interview.
+Basic CS constructs, for interviews and such. I wrote most of this code to practice for my Google interviews.
 
 ## systems
 System software examples.
