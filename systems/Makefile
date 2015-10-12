@@ -1,4 +1,4 @@
-is_le: le.c
+is_le: is_le.c
 	cc -o $@ $<
 
 prodcons: prodcons.c
