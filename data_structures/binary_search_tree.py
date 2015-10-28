@@ -1,6 +1,6 @@
 import random
 
-# Binary search tree. Unbalanced.
+# Binary search tree. Not balanced.
 
 class Node(object):
     def __init__(self, value, left=None, right=None):
