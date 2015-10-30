@@ -57,9 +57,9 @@ def matches2(pattern, string):
                 return False
             chunk_start_index = 0
         elif no_star_after:
-            chunk_start_index = string.rfind(chunk)
+            chunk_start_index = string.rfind(chunk, sindex)
         else: # star_before and star_after
-            chunk_start_index = string.find(chunk)
+            chunk_start_index = string.find(chunk, sindex)
 
         if chunk_start_index < 0:
             return False
@@ -72,6 +72,51 @@ def matches2(pattern, string):
     return True
 
 
+# Dynamic programming.
+def matches3(pattern, string):
+    plen = len(pattern)
+    slen = len(string)
+
+    nrows = plen + 1
+    ncols = slen + 1
+
+    # partial[i][j] == pattern[:i] matches string[:j]
+    partial = [[None for _ in range(ncols)] for _ in range(nrows)]
+
+    # Empty |pattern| matches empty |string|.
+    partial[0][0] = True
+    # Empty |pattern| doesn't match non-empty |string|.
+    for colindex in range(1, ncols):
+        partial[0][colindex] = False
+
+    for rowindex in range(1, nrows):
+        # If we enter the loop, nrows > 1 => plen + 1 > 1 => plen > 0 =>
+        # |pattern| is non-empty.
+        pe = pattern[rowindex - 1]
+        # Non-empty |pattern| matches empty |string| iff |pattern| is all stars.
+        partial[rowindex][0] = pe == "*" and partial[rowindex - 1][0]
+
+        for colindex in range(1, ncols):
+            # If we enter the loop, ncols > 1 => slen + 1 > 1 => slen > 0 =>
+            # |string| is non-empty.
+            se = string[colindex - 1]
+
+            if pe == "*":
+                # 'pattern*' matches 'string<c>' iff:
+                #   'pattern' matches 'string<c>' (star matches no characters)
+                #   or 'pattern' matches 'string' (star matches at least one character)
+                #   or 'pattern*' matches 'string' (star matches more than one character)
+                partial[rowindex][colindex] = (partial[rowindex - 1][colindex]
+                                               or partial[rowindex - 1][colindex - 1]
+                                               or partial[rowindex][colindex - 1])
+            elif pe == se or pe == "?":
+                partial[rowindex][colindex] = partial[rowindex - 1][colindex - 1]
+            else: # pe != se
+                partial[rowindex][colindex] = False
+
+    return partial[plen][slen]
+
+
 def test(f):
     print f("", ""), True
     print f("*", ""), True
@@ -79,10 +124,10 @@ def test(f):
     print f("a", "a"), True
     print f("a", "b"), False
     print f("ab", "ab"), True
-    # print f("a?c", "abc"), True
+    print f("a?c", "abc"), True
     print f("a*c", "abc"), True
     print f("a*c", "ac"), True
-    print f("a*b", "abbbb"), True
+    print f("a*b", "abbb"), True
     print f("a*b*c", "abbbbc"), True
     print f("a*b*c", "abbbbcd"), False
     print f("a*bc**bc", "abbbbcbc"), True
@@ -92,11 +137,14 @@ def test(f):
 
 if __name__ == "__main__":
     import datetime
-    test(matches1)
-    test(matches2)
+    # test(matches1)
+    # test(matches2)
+    # test(matches3)
 
     print datetime.datetime.now()
-    print matches1("a*" * 100, "a" * 200)
+    print matches1("a*" * 1000, "a" * 2000)
     print datetime.datetime.now()
-    print matches2("a*" * 4000, "a" * 8000)
+    print matches2("a*" * 1000, "a" * 2000)
+    print datetime.datetime.now()
+    print matches3("a*" * 1000, "a" * 2000)
     print datetime.datetime.now()
